@@ -13,10 +13,11 @@ function App() {
   return (
     <div>
       <Routes>
-        <Route path='/Home' Component={HomePage}></Route>
+        <Route path='/HomePage' Component={HomePage}></Route>
         <Route path='/chat' Component={ChatPage}></Route>
         <Route path='/' Component={SignUp}></Route>
         <Route path='/Login' Component={Login}></Route>
+        <Route path='/ChatPage/:conversationId' Component={ChatPage}></Route>
       </Routes>
     </div>
   )

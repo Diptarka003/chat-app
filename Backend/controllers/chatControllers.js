@@ -39,15 +39,24 @@ export const fetchChats = async (req, res) => {
   try {
     const myId = req.user.id;
 
-    // 🔍 Find all conversations where the user is either user1 or user2
-    const chats = await client.query(
-      "SELECT * FROM conversations WHERE user1_id = $1 OR user2_id = $1 ORDER BY created_at DESC",
-      [myId]
-    );
+    const query = `
+      SELECT 
+        c.id AS conversation_id,
+        CASE 
+          WHEN c.user1_id = $1 THEN u2.username 
+          ELSE u1.username 
+        END AS chat_with
+      FROM conversations c
+      JOIN users u1 ON c.user1_id = u1.id
+      JOIN users u2 ON c.user2_id = u2.id
+      WHERE c.user1_id = $1 OR c.user2_id = $1
+      ORDER BY c.created_at DESC;
+    `;
 
-    res.json(chats.rows);
+    const result = await client.query(query, [myId]);
+    res.status(200).json(result.rows);
   } catch (error) {
-    console.error("Error in fetchChats:", error);
-    res.status(500).json({ message: "Could not fetch chats" });
+    console.error("Error fetching chats:", error);
+    res.status(500).json({ message: "Failed to fetch chats" });
   }
 };

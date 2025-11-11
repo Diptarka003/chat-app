@@ -7,7 +7,8 @@ const Login = () => {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
       const res = await fetch("http://localhost:8000/api/user/login", {
         method: "POST",
@@ -19,14 +20,14 @@ const Login = () => {
 
       if (res.ok) {
         localStorage.setItem("token", data.token);
-        setMessage("✅ Login successful! Redirecting...");
-        setTimeout(() => navigate("/HomePage"), 1000);
+        localStorage.setItem("userId", data.id);  // ✅ Store user ID for socket
+        localStorage.setItem("username", data.username);
+        navigate("/HomePage");
       } else {
-        setMessage(`❌ ${data.error || "Invalid credentials"}`);
+        alert(data.message || "Login failed");
       }
-    } catch (error) {
-      console.error("Error:", error);
-      setMessage("❌ Something went wrong. Try again.");
+    } catch (err) {
+      console.error("Error during login:", err);
     }
   };
 

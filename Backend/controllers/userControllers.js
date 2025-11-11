@@ -44,11 +44,25 @@ export const login=async(req,res)=>{
 
 export const getCurrentUser = async (req, res) => {
   try {
-    const { email } = req.user.email; // comes from JWT payload
+    const { email } = req.user.email; 
     const result = await getUser(email)
     res.json(result.rows[0]);
   } catch (error) {
     console.error("Error fetching current user:", error);
     res.status(500).json({ message: "Failed to fetch user info" });
+  }
+};
+
+export const searchUsers = async (req, res) => {
+  const { query } = req.query;
+  try {
+    const result = await client.query(
+      `SELECT id, username, email FROM users WHERE username ILIKE $1 LIMIT 10`,
+      [`%${query}%`]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error while searching users" });
   }
 };
