@@ -65,31 +65,24 @@ const HomePage = () => {
             No chats yet. Start one by messaging a user!
           </p>
         ) : (
-          <ul className="space-y-3">
-            {chats.map((chat) => {
-              // Determine who you’re chatting with
-              const chatWith =
-                chat.chat_with ||
-                chat.username ||
-                chat.user2_name ||
-                chat.user1_name ||
-                `User ${chat.user2_id || chat.user1_id}`;
-
-              return (
+            <ul className="space-y-3">
+              {chats.map((chat) => (
                 <li
                   key={chat.conversation_id || chat.id}
-                  className="p-3 border rounded-md hover:bg-gray-100 cursor-pointer transition"
                   onClick={() =>
                     navigate(`/ChatPage/${chat.conversation_id || chat.id}`, {
-                      state: { chatWith },
+                      state: { chatWith: chat.chat_with },
                     })
                   }
+                  className="flex items-center gap-3 p-3 border rounded-md hover:bg-gray-50 cursor-pointer transition"
                 >
-                  <p className="font-semibold text-lg">{chatWith}</p>
+                  <div className="bg-blue-500 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center">
+                    {chat.chat_with?.[0]?.toUpperCase()}
+                  </div>
+                  <p className="font-semibold text-lg">{chat.chat_with}</p>
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
         )}
 
         <button

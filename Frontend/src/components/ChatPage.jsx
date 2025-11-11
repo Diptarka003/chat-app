@@ -44,6 +44,12 @@ const ChatPage = () => {
         const data = await res.json();
         if (res.ok) {
           setMessages(data);
+          console.log("🔍 DEBUG - First message:", data[0]);
+console.log("🔍 DEBUG - userId from localStorage:", userId);
+console.log("🔍 DEBUG - Comparison:", 
+  `sender_id: ${data[0]?.sender_id} (${typeof data[0]?.sender_id})`, 
+  `userId: ${userId} (${typeof userId})`
+);
           if (data.length > 0) {
             const first = data[0];
             setReceiverId(
@@ -197,21 +203,32 @@ const ChatPage = () => {
       </div>
 
       {/* Messages */}
+{/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`max-w-xs p-2 rounded-lg ${
-              msg.sender_id === parseInt(userId)
-                ? "bg-blue-500 text-white ml-auto"
-                : "bg-white text-gray-800 mr-auto"
-            }`}
-          >
-            {msg.content}
-          </div>
-        ))}
+        {messages.map((msg, i) => {
+          // Make sure both sides are numbers
+          const isMine = Number(msg.sender_id) === Number(userId);
+
+          return (
+            <div
+              key={i}
+              className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm wrap-break-word shadow-sm ${
+                  isMine
+                    ? "bg-blue-600 text-white rounded-br-none"
+                    : "bg-gray-200 text-gray-900 rounded-bl-none"
+                }`}
+              >
+                {msg.content}
+              </div>
+            </div>
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
+
 
       {/* Input */}
       <div className="p-4 flex items-center bg-white border-t">

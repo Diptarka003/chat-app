@@ -45,7 +45,9 @@ export const fetchChats = async (req, res) => {
         CASE 
           WHEN c.user1_id = $1 THEN u2.username 
           ELSE u1.username 
-        END AS chat_with
+        END AS chat_with,
+        u1.id AS user1_id,
+        u2.id AS user2_id
       FROM conversations c
       JOIN users u1 ON c.user1_id = u1.id
       JOIN users u2 ON c.user2_id = u2.id

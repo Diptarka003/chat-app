@@ -16,31 +16,47 @@ export const signup=async(req,res)=>{
     res.status(201).json(newUser)
 }
 
-export const login=async(req,res)=>{
-    const {email,password}=req.body
-    if(!email|| !password)
-    {
-         res.status(400).json({"message":"Enter email and password"})
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Enter email and password" });
     }
-    const user= await getUser(email)
-    const isMatch= bcrypt.compare(password,user.password)
-    if(!isMatch)
-    {
-        res.statsu(400).json({"message":"Invalid credentials"})
+
+    const user = await getUser(email);
+
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
     }
-    const token= jwt.sign({
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // ✅ Properly sign JWT with user ID and username
+    const token = jwt.sign(
+      {
         id: user.id,
-        username:user.username,
-        email:user.email
-    },process.env.JWT_SECRET,{expiresIn:"7d"})
-    return res.status(200).json({
-      message: "Login successful",
+        username: user.username,
+        email: user.email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
       id: user.id,
       username: user.username,
       email: user.email,
       token,
     });
-}
+  } catch (err) {
+    console.error("❌ Error in login:", err);
+    res.status(500).json({ message: "Login failed" });
+  }
+};
 
 export const getCurrentUser = async (req, res) => {
   try {
@@ -53,16 +69,3 @@ export const getCurrentUser = async (req, res) => {
   }
 };
 
-export const searchUsers = async (req, res) => {
-  const { query } = req.query;
-  try {
-    const result = await client.query(
-      `SELECT id, username, email FROM users WHERE username ILIKE $1 LIMIT 10`,
-      [`%${query}%`]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error while searching users" });
-  }
-};
