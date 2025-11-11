@@ -58,7 +58,7 @@ const HomePage = () => {
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-100 p-6">
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-center">Your Chats 💬</h2>
+        <h2 className="text-2xl font-bold mb-4 text-center">Your Chats</h2>
 
         {chats.length === 0 ? (
           <p className="text-center text-gray-600">

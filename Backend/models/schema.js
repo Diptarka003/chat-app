@@ -2,7 +2,6 @@
 import { client } from "../config/db.js"
 export const createSchema = async () => {
   try {
-    // Create Users table
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -13,7 +12,6 @@ export const createSchema = async () => {
       );
     `);
 
-    // Create Conversations table
     await client.query(`
       CREATE TABLE IF NOT EXISTS conversations (
         id SERIAL PRIMARY KEY,
@@ -24,7 +22,6 @@ export const createSchema = async () => {
       );
     `);
 
-    // Create Messages table
     await client.query(`
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,

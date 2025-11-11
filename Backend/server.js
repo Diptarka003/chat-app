@@ -36,35 +36,29 @@ const io = new Server(server, {
 connectDB();
 createSchema();
 
-// Socket.IO event handlers
 io.on("connection", (socket) => {
   console.log("🟢 Client connected:", socket.id);
 
-  // Join conversation room
   socket.on("join_conversation", (conversationId) => {
     const roomName = `conversation_${conversationId}`;
     socket.join(roomName);
     console.log(`✅ Socket ${socket.id} JOINED room: ${roomName}`);
-    
-    // Verify the socket is in the room
     console.log(`👥 Sockets in room ${roomName}:`, io.sockets.adapter.rooms.get(roomName)?.size || 0);
   });
 
-  // Broadcast message to OTHER users in the room
   socket.on("send_message", (data) => {
     const { conversationId, message } = data;
     const roomName = `conversation_${conversationId}`;
     
-    console.log(`💬 Message from ${socket.id} to room ${roomName}`);
-    console.log(`👥 Room size: ${io.sockets.adapter.rooms.get(roomName)?.size || 0}`);
+    console.log(` Message from ${socket.id} to room ${roomName}`);
+    console.log(`Room size: ${io.sockets.adapter.rooms.get(roomName)?.size || 0}`);
     
-    // IMPORTANT: socket.to() excludes sender, io.to() includes everyone
     socket.to(roomName).emit("receive_message", {
       conversationId,
       message,
     });
     
-    console.log(`📤 Broadcasted to ${roomName} (excluding sender)`);
+    console.log(`Broadcasted to ${roomName} (excluding sender)`);
   });
 
   // Leave conversation room

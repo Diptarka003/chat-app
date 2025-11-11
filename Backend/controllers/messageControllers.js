@@ -1,11 +1,9 @@
 import { client } from "../config/db.js";
 
-// ✅ Get all messages for a conversation
 export const fetchMessages = async (req, res) => {
   try {
     const { conversationId } = req.params;
 
-    // 📨 Get all messages in that chat
     const messages = await client.query(
       "SELECT * FROM messages WHERE conversation_id = $1 ORDER BY sent_at ASC",
       [conversationId]
@@ -18,10 +16,9 @@ export const fetchMessages = async (req, res) => {
   }
 };
 
-// ✅ Send a new message
 export const sendMessage = async (req, res) => {
   const { conversationId, content } = req.body;
-  const senderId = req.user.id; // ✅ logged-in user
+  const senderId = req.user.id; 
 
   if (!conversationId || !content) {
     return res.status(400).json({ message: "Conversation ID and content are required" });

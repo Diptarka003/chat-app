@@ -22,11 +22,11 @@ const SignUp = () => {
         setEmail("");
         setPassword("");
       } else {
-        setMessage(`❌ ${data.error || "Signup failed"}`);
+        setMessage(`${data.error || "Signup failed"}`);
       }
     } catch (error) {
       console.error("Error:", error);
-      setMessage("❌ Something went wrong. Try again.");
+      setMessage("Something went wrong. Try again.");
     }
   };
 
@@ -69,7 +69,7 @@ const SignUp = () => {
             />
           </div>
 
-          {/* 🔹 Changed here */}
+
           <button
             type="button"
             onClick={handleSubmit}

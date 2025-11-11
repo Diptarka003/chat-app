@@ -1,27 +1,23 @@
 import { client } from "../config/db.js";
 
-// ✅ Access or create a chat between two users
 export const accessChat = async (req, res) => {
   try {
-    const myId = req.user.id;   // current logged-in user
-    const { userId } = req.body; // the other person you want to chat with
+    const myId = req.user.id; 
+    const { userId } = req.body; 
 
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    // 🔍 Check if chat already exists between both users
     const existingChat = await client.query(
       "SELECT * FROM conversations WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1)",
       [myId, userId]
     );
 
     if (existingChat.rows.length > 0) {
-      // If chat exists, send it back
       return res.json(existingChat.rows[0]);
     }
 
-    // 🆕 Otherwise, create a new conversation
     const newChat = await client.query(
       "INSERT INTO conversations (user1_id, user2_id) VALUES ($1, $2) RETURNING *",
       [myId, userId]
@@ -34,11 +30,9 @@ export const accessChat = async (req, res) => {
   }
 };
 
-// ✅ Get all chats for the current user
 export const fetchChats = async (req, res) => {
   try {
     const myId = req.user.id;
-
     const query = `
       SELECT 
         c.id AS conversation_id,
