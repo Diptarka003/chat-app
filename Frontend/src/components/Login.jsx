@@ -20,10 +20,18 @@ const Login = () => {
 
       if (res.ok) {
         localStorage.setItem("token", data.token);
-        localStorage.setItem("userId", data.id);  // ✅ Store user ID for socket
-        localStorage.setItem("username", data.username);
+        
+        // ✅ Store user data as "admin" object
+        localStorage.setItem("admin", JSON.stringify({
+          id: data.id,
+          userId: data.id,  // Keep both for compatibility
+          username: data.username,
+          email: data.email
+        }));
+        
         navigate("/HomePage");
-      } else {
+      }
+      else {
         alert(data.message || "Login failed");
       }
     } catch (err) {

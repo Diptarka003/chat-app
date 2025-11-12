@@ -10,18 +10,25 @@ const ChatPage = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
-  const [receiverId, setReceiverId] = useState(null);
   const messagesEndRef = useRef(null);
-  const hasJoinedRef = useRef(false); // Prevent duplicate joins
   const chatWith = location.state?.chatWith || "User";
 
+  // Extract user ID from localStorage
+  // Get userId from localStorage - check both possible field names
   const adminData = JSON.parse(localStorage.getItem("admin"));
-  const userId = adminData?.id;
+  const userId = adminData?.id || adminData?.userId;
+  
+  // Debug: Log userId on mount
+  useEffect(() => {
+    console.log("🔍 Current userId from localStorage:", userId, typeof userId);
+  }, [userId]);
 
+  // Scroll to bottom automatically
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Fetch existing messages
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -41,14 +48,6 @@ const ChatPage = () => {
         const data = await res.json();
         if (res.ok) {
           setMessages(data);
-          if (data.length > 0) {
-            const first = data[0];
-            setReceiverId(
-              first.sender_id === parseInt(userId)
-                ? first.receiver_id
-                : first.sender_id
-            );
-          }
         }
       } catch (err) {
         console.error("Error fetching messages:", err);
@@ -58,75 +57,65 @@ const ChatPage = () => {
     };
 
     fetchMessages();
-  }, [conversationId, navigate, userId]);
+  }, [conversationId, navigate]);
 
+  // Socket connection and room management
   useEffect(() => {
-    if (!conversationId || hasJoinedRef.current) return;
+    if (!conversationId) return;
 
-    console.log("🔌 Connecting socket...");
-
+    // Connect socket immediately
     if (!socket.connected) {
       socket.connect();
     }
 
-    const handleConnect = () => {
-      console.log("✅ Socket connected:", socket.id);
-      
-      if (!hasJoinedRef.current) {
-        socket.emit("join_conversation", conversationId);
-        hasJoinedRef.current = true;
-        console.log("✅ Joined conversation room:", conversationId);
-      }
+    const joinRoom = () => {
+      socket.emit("join_conversation", conversationId);
     };
 
     const handleReceiveMessage = (data) => {
-      console.log("📩 Message received from socket:", data);
-    
       if (data.conversationId === parseInt(conversationId)) {
         setMessages((prev) => {
-          const messageExists = prev.some(msg => msg.id === data.message.id);
-          if (messageExists) {
-            console.log("⚠️ Duplicate message prevented");
-            return prev;
-          }
-          console.log("✅ Adding new message to state");
+          const exists = prev.some(m => m.id === data.message.id);
+          if (exists) return prev;
           return [...prev, data.message];
         });
       }
     };
 
+    const handleConnect = () => {
+      setTimeout(() => {
+        joinRoom();
+      }, 100);
+    };
+
+    // Check current connection state
     if (socket.connected) {
-      handleConnect();
+      joinRoom();
     } else {
       socket.on("connect", handleConnect);
     }
 
+    // Listen for incoming messages
     socket.on("receive_message", handleReceiveMessage);
 
+    // Cleanup
     return () => {
-      console.log("🧹 Cleaning up socket listeners");
       socket.off("connect", handleConnect);
       socket.off("receive_message", handleReceiveMessage);
-      
-      if (hasJoinedRef.current) {
-        socket.emit("leave_conversation", conversationId);
-        hasJoinedRef.current = false;
-      }
-      
+      socket.emit("leave_conversation", conversationId);
     };
   }, [conversationId]);
 
+  // Send message
   const sendMessage = async () => {
     const token = localStorage.getItem("token");
     if (!input.trim()) return;
 
-    const messageData = {
-      conversationId,
-      content: input,
-    };
+    const trimmedInput = input.trim();
+    setInput(""); // Clear input immediately for better UX
 
     try {
-      console.log("Sending message...");
+      console.log("📤 Sending message:", trimmedInput);
       
       const res = await fetch("http://localhost:8000/api/messages", {
         method: "POST",
@@ -134,40 +123,50 @@ const ChatPage = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(messageData),
+        body: JSON.stringify({
+          conversationId,
+          content: trimmedInput,
+        }),
       });
 
-      const data = await res.json();
+      const savedMessage = await res.json();
 
       if (res.ok) {
-        console.log("✅ Message saved to DB:", data);
-        setMessages((prev) => [...prev, data]);
-        setInput("");
+        console.log("✅ Message saved:", savedMessage);
+        
+        // Add to local UI immediately
+        setMessages((prev) => [...prev, savedMessage]);
 
-        console.log("Broadcasting message via socket");
+        // Emit to socket for others
+        console.log("📡 Emitting to socket, room:", conversationId);
         socket.emit("send_message", {
           conversationId: parseInt(conversationId),
-          message: data,
+          message: savedMessage,
         });
+      } else {
+        console.error("❌ Failed to save message:", savedMessage);
+        setInput(trimmedInput); // Restore input on failure
       }
     } catch (err) {
       console.error("❌ Error sending message:", err);
+      setInput(trimmedInput); // Restore input on error
     }
   };
 
-  if (loading)
+  if (loading) {
     return (
       <div className="text-center mt-20 text-gray-600">
         Loading messages...
       </div>
     );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
-
+      {/* Header */}
       <div className="p-4 bg-blue-600 text-white font-bold text-lg flex items-center justify-between">
         <button
-          onClick={() => navigate("/HomePage")}
+          onClick={() => navigate("/")}
           className="text-white bg-blue-500 px-2 py-1 rounded-md hover:bg-blue-700"
         >
           ← Back
@@ -175,30 +174,41 @@ const ChatPage = () => {
         <span>Chat with {chatWith}</span>
       </div>
 
-
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg, i) => {
-          const isMine = Number(msg.sender_id) === Number(userId);
-          return (
-            <div
-              key={i}
-              className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-            >
+        
+        {messages.length === 0 ? (
+          <div className="text-center text-gray-500 mt-10">
+            No messages yet. Start the conversation!
+          </div>
+        ) : (
+          messages.map((msg) => {
+            // Convert both to numbers for comparison
+            const isMine = Number(msg.sender_id) === Number(userId);
+            
+            return (
               <div
-                className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm wrap-break-word shadow-sm ${
-                  isMine
-                    ? "bg-blue-600 text-white rounded-br-none"
-                    : "bg-gray-200 text-gray-900 rounded-bl-none"
-                }`}
+                key={msg.id}
+                className={`flex ${isMine ? "justify-end" : "justify-start"}`}
               >
-                {msg.content}
+                <div
+                  className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow-sm ${
+                    isMine
+                      ? "bg-blue-600 text-white rounded-br-none"
+                      : "bg-gray-200 text-gray-900 rounded-bl-none"
+                  }`}
+                  style={{ wordBreak: "break-word" }}
+                >
+                  {msg.content}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Input */}
       <div className="p-4 flex items-center bg-white border-t">
         <input
           type="text"
@@ -206,7 +216,12 @@ const ChatPage = () => {
           placeholder="Type a message..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage();
+            }
+          }}
         />
         <button
           onClick={sendMessage}
